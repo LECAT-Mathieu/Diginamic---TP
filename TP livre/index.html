@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bibliothèque - Accueil</title>
+<style>
+  body { font-family: Arial, sans-serif; padding: 2em; }
+  button {
+    padding: 1em 2em;
+    font-size: 1.2em;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+  <h1>Bienvenue dans votre bibliothèque</h1>
+  <button id="addBookBtn">Ajouter un livre</button>
+  <button id="viewBooksBtn">Voir tous les livres</button>
+
+  <script>
+    document.getElementById('addBookBtn').onclick = () => {
+      window.location.href = 'form.html';
+    };
+    document.getElementById('viewBooksBtn').onclick = () => {
+      window.location.href = 'books.html';
+    };
+  </script>
+</body>
+</html>

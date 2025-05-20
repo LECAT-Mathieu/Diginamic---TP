@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Liste des livres</title>
+<style>
+  body { font-family: Arial, sans-serif; padding: 2em; max-width: 900px; margin: auto;}
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1em;
+  }
+  th, td {
+    border: 1px solid #999;
+    padding: 0.5em;
+    text-align: left;
+    vertical-align: middle;
+  }
+  th {
+    background-color: #eee;
+  }
+  button {
+    padding: 0.3em 0.8em;
+    cursor: pointer;
+    margin: 0 2px;
+  }
+  input[type="text"], input[type="date"], input[type="number"], select {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  #searchInput {
+    width: 100%;
+    padding: 0.6em;
+    font-size: 1em;
+  }
+  #backBtn {
+    margin-top: 1em;
+    padding: 0.7em 1.5em;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+  <h1>Liste des livres</h1>
+
+  <input type="text" id="searchInput" placeholder="Rechercher par titre ou auteur..." />
+
+  <table id="booksTable">
+    <thead>
+      <tr>
+        <th>Titre</th>
+        <th>Auteur</th>
+        <th>Date de parution</th>
+        <th>Format</th>
+        <th>Pages / Mo</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+
+    </tbody>
+  </table>
+
+  <button id="backBtn">Retour à l'accueil</button>
+
+  <script>
+    const tbody = document.querySelector('#booksTable tbody');
+    const searchInput = document.getElementById('searchInput');
+
+    function getBooks() {
+      return JSON.parse(localStorage.getItem('books')) || [];
+    }
+
+    function saveBooks(books) {
+      localStorage.setItem('books', JSON.stringify(books));
+    }
+
+    function displayBooks(filter = '') {
+      const books = getBooks();
+      tbody.innerHTML = '';
+
+      const filteredBooks = books.filter(book =>
+        book.title.toLowerCase().includes(filter.toLowerCase()) ||
+        book.author.toLowerCase().includes(filter.toLowerCase())
+      );
+
+      if (filteredBooks.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Aucun livre trouvé.</td></tr>';
+        return;
+      }
+
+      filteredBooks.forEach(book => {
+        const tr = document.createElement('tr');
+
+        tr.innerHTML = `
+          <td class="title">${escapeHtml(book.title)}</td>
+          <td class="author">${escapeHtml(book.author)}</td>
+          <td class="date">${book.date}</td>
+          <td class="format">${book.format === 'physique' ? 'Physique' : 'Numérique'}</td>
+          <td class="pagesOrMo">${book.format === 'physique' ? book.pages + ' pages' : book.mo + ' Mo'}</td>
+          <td class="actions">
+            <button class="editBtn">Modifier</button>
+            <button class="deleteBtn">Supprimer</button>
+          </td>
+        `;
+
+        tr.dataset.id = book.id;
+
+        tbody.appendChild(tr);
+      });
+
+      addListeners();
+    }
+
+    function escapeHtml(text) {
+      return text.replace(/[&<>"']/g, function(m) {
+        return {'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[m];
+      });
+    }
+
+    function addListeners() {
+      const editButtons = document.querySelectorAll('.editBtn');
+      const deleteButtons = document.querySelectorAll('.deleteBtn');
+
+      editButtons.forEach(btn => {
+        btn.onclick = () => {
+          const tr = btn.closest('tr');
+          if (btn.textContent === 'Modifier') {
+            startEditing(tr, btn);
+          } else if (btn.textContent === 'Sauvegarder') {
+            saveEdit(tr, btn);
+          } else if (btn.textContent === 'Annuler') {
+            cancelEdit(tr, btn);
+          }
+        };
+      });
+
+      deleteButtons.forEach(btn => {
+        btn.onclick = () => {
+          const tr = btn.closest('tr');
+          if(confirm('Voulez-vous vraiment supprimer ce livre ?')) {
+            deleteBook(tr.dataset.id);
+          }
+        };
+      });
+    }
+
+    function startEditing(tr, editBtn) {
+      const bookId = tr.dataset.id;
+      const books = getBooks();
+      const book = books.find(b => b.id == bookId);
+
+      tr.querySelector('.title').innerHTML = `<input type="text" value="${escapeHtml(book.title)}" />`;
+      tr.querySelector('.author').innerHTML = `<input type="text" value="${escapeHtml(book.author)}" />`;
+      tr.querySelector('.date').innerHTML = `<input type="date" value="${book.date}" />`;
+
+      tr.querySelector('.format').innerHTML = `
+        <select>
+          <option value="physique" ${book.format === 'physique' ? 'selected' : ''}>Physique</option>
+          <option value="numerique" ${book.format === 'numerique' ? 'selected' : ''}>Numérique</option>
+        </select>`;
+
+      if (book.format === 'physique') {
+        tr.querySelector('.pagesOrMo').innerHTML = `<input type="number" min="1" value="${book.pages}" />`;
+      } else {
+        tr.querySelector('.pagesOrMo').innerHTML = `<input type="number" min="0.1" step="0.1" value="${book.mo}" />`;
+      }
+
+      editBtn.textContent = 'Sauvegarder';
+      let cancelBtn = tr.querySelector('.cancelBtn');
+      if (!cancelBtn) {
+        cancelBtn = document.createElement('button');
+        cancelBtn.textContent = 'Annuler';
+        cancelBtn.classList.add('cancelBtn');
+        editBtn.after(cancelBtn);
+
+        cancelBtn.onclick = () => {
+          cancelEdit(tr, editBtn);
+        };
+      }
+    }
+
+    function cancelEdit(tr, editBtn) {
+      const bookId = tr.dataset.id;
+      const books = getBooks();
+      const book = books.find(b => b.id == bookId);
+
+      tr.querySelector('.title').textContent = book.title;
+      tr.querySelector('.author').textContent = book.author;
+      tr.querySelector('.date').textContent = book.date;
+      tr.querySelector('.format').textContent = book.format === 'physique' ? 'Physique' : 'Numérique';
+      tr.querySelector('.pagesOrMo').textContent = book.format === 'physique' ? book.pages + ' pages' : book.mo + ' Mo';
+
+      editBtn.textContent = 'Modifier';
+
+      const cancelBtn = tr.querySelector('.cancelBtn');
+      if (cancelBtn) cancelBtn.remove();
+    }
+
+    function saveEdit(tr, editBtn) {
+      const bookId = tr.dataset.id;
+      const books = getBooks();
+      const bookIndex = books.findIndex(b => b.id == bookId);
+      if (bookIndex === -1) return alert('Livre non trouvé.');
+
+      const title = tr.querySelector('.title input').value.trim();
+      const author = tr.querySelector('.author input').value.trim();
+      const date = tr.querySelector('.date input').value;
+      const format = tr.querySelector('.format select').value;
+      let pagesOrMoInput = tr.querySelector('.pagesOrMo input');
+      let pages = null, mo = null;
+
+      if (!title || !author || !date || !format) {
+        return alert('Veuillez remplir tous les champs obligatoires.');
+      }
+
+      if (format === 'physique') {
+        pages = Number(pagesOrMoInput.value);
+        if (!pages || pages < 1) {
+          return alert('Veuillez entrer un nombre de pages valide.');
+        }
+      } else {
+        mo = Number(pagesOrMoInput.value);
+        if (!mo || mo <= 0) {
+          return alert('Veuillez entrer une taille en Mo valide.');
+        }
+      }
+
+      books[bookIndex] = {
+        id: books[bookIndex].id,
+        title,
+        author,
+        date,
+        format,
+        pages,
+        mo
+      };
+
+      saveBooks(books);
+      displayBooks(searchInput.value);
+    }
+
+    function deleteBook(id) {
+      let books = getBooks();
+      books = books.filter(b => b.id != id);
+      saveBooks(books);
+      displayBooks(searchInput.value);
+    }
+
+    searchInput.addEventListener('input', () => {
+      displayBooks(searchInput.value);
+    });
+
+    document.getElementById('backBtn').onclick = () => {
+      window.location.href = 'index.html';
+    };
+
+    displayBooks();
+  </script>
+</body>
+</html>

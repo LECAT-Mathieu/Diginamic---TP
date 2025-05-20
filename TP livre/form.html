@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ajouter un livre</title>
+<style>
+  body { font-family: Arial, sans-serif; padding: 2em; max-width: 500px; margin: auto;}
+  label { display: block; margin-top: 1em; }
+  input, select {
+    width: 100%;
+    padding: 0.5em;
+    margin-top: 0.3em;
+  }
+  button {
+    margin-top: 1.5em;
+    padding: 0.7em 1.5em;
+    font-size: 1em;
+    cursor: pointer;
+  }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+  <h1>Ajouter un nouveau livre</h1>
+  <form id="bookForm">
+    <label>
+      Titre :
+      <input type="text" id="title" required />
+    </label>
+    <label>
+      Auteur :
+      <input type="text" id="author" required />
+    </label>
+    <label>
+      Date de parution :
+      <input type="date" id="date" required />
+    </label>
+    <label>
+      Format :
+      <select id="format" required>
+        <option value="">-- Choisir --</option>
+        <option value="physique">Physique</option>
+        <option value="numerique">Numérique</option>
+      </select>
+    </label>
+    <label id="pagesLabel" class="hidden">
+      Nombre de pages :
+      <input type="number" id="pages" min="1" />
+    </label>
+    <label id="moLabel" class="hidden">
+      Taille (en Mo) :
+      <input type="number" id="mo" min="1" step="0.1" />
+    </label>
+
+    <button type="submit">Ajouter le livre</button>
+  </form>
+  <button id="backBtn" style="margin-top: 1em;">Retour à l'accueil</button>
+
+  <script>
+    const formatSelect = document.getElementById('format');
+    const pagesLabel = document.getElementById('pagesLabel');
+    const moLabel = document.getElementById('moLabel');
+    const pagesInput = document.getElementById('pages');
+    const moInput = document.getElementById('mo');
+
+    formatSelect.addEventListener('change', () => {
+      if (formatSelect.value === 'physique') {
+        pagesLabel.classList.remove('hidden');
+        pagesInput.required = true;
+        moLabel.classList.add('hidden');
+        moInput.required = false;
+        moInput.value = '';
+      } else if (formatSelect.value === 'numerique') {
+        moLabel.classList.remove('hidden');
+        moInput.required = true;
+        pagesLabel.classList.add('hidden');
+        pagesInput.required = false;
+        pagesInput.value = '';
+      } else {
+        pagesLabel.classList.add('hidden');
+        moLabel.classList.add('hidden');
+        pagesInput.required = false;
+        moInput.required = false;
+        pagesInput.value = '';
+        moInput.value = '';
+      }
+    });
+
+    document.getElementById('bookForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const book = {
+        id: Date.now(),
+        title: document.getElementById('title').value.trim(),
+        author: document.getElementById('author').value.trim(),
+        date: document.getElementById('date').value,
+        format: formatSelect.value,
+        pages: pagesInput.value ? Number(pagesInput.value) : null,
+        mo: moInput.value ? Number(moInput.value) : null,
+      };
+
+      let books = JSON.parse(localStorage.getItem('books')) || [];
+      books.push(book);
+      localStorage.setItem('books', JSON.stringify(books));
+
+      alert('Livre ajouté avec succès !');
+      window.location.href = 'books.html';
+    });
+
+    document.getElementById('backBtn').onclick = () => {
+      window.location.href = 'index.html';
+    };
+  </script>
+</body>
+</html>
